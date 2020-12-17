@@ -1,0 +1,63 @@
+loki:
+  config:
+    table_manager:
+      retention_deletes_enabled: true
+      retention_period: 7d
+    chunk_store_config:
+      max_look_back_period: 7d
+  persistence:
+    enabled: true
+    storageClassName: hostpath
+    size: 5Gi
+
+grafana:
+  service:
+    type: NodePort
+    nodePort: 30100
+  persistence:
+    enabled: true
+    storageClassName: hostpath
+  sidecar:
+    dashboards:
+      enabled: true
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://monitoring-stack-prometheus-server
+          access: proxy
+          isDefault: true
+        - name: Loki
+          type: loki
+          access: proxy
+          url: http://monitoring-stack-loki:3100
+
+prometheus:
+  server:
+    service:
+      type: NodePort
+      nodePort: 30200
+    persistentVolume:
+      storageClass: hostpath
+      size: "5Gi"
+    retention: "7d"
+  nodeExporter:
+    hostNetwork: false
+  pushgateway:
+    enabled: false
+  alertmanager:
+    enabled: false
+
+docker-registry:
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: hostpath
+
+chartmuseum:
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: hostpath

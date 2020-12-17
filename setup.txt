@@ -1,0 +1,8 @@
+kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
+
+
+kubectl create ns monitoring-stack
+kubectl config set-context --current --namespace=monitoring-stack
+
+helm upgrade --install monitoring-stack .
+kubectl get secret monitoring-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
