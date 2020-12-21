@@ -1,4 +1,7 @@
 # BlueLabs coding task
+The code is hosted in the GitHub organization `bluelabs-coding-task` (https://github.com/bluelabs-coding-task?type=source). It consists of two repositories:
+- **infra**, for all the infrastructure tooling described below
+- **development**, for the playerbio service
 
 ## Prerequisites
 I've been successfully running the coding task with the following configuration:
@@ -6,57 +9,55 @@ I've been successfully running the coding task with the following configuration:
  - CentOS 8
  - 100 GB disk storage
 
-I've created the `bluelabs-coding-task` GitHub organization to host the coding task. It consists of two repositories:
-- **infra**, for all the infrastructure tooling described right below
-- **development**, for the playerbio service
-
-As a preliminary step, clone the `infra` repository on your machine:
-https://github.com/bluelabs-coding-task/infra.git
-On the Google Cloud VM:
-``
+As a preliminary step, clone the `infra` repository (https://github.com/bluelabs-coding-task/infra.git) on your machine. For example, on the Google Cloud VM:
+```
 sudo dnf update -y
 sudo dnf install git -y
 git clone https://github.com/bluelabs-coding-task/infra.git
-``
-When prompted insert the GitHib username and password/token (those provided via email or those of the `bluelabseu-bot`).
+```
+When prompted insert the GitHub username and password/token (those provided via email or those of the `bluelabseu-bot`).
 
 TODO CHMOD
 
 
 ## Setup
 Export the following variables to set GitHub username and token:  
-``
-    export GITHUB_USERNAME=<<github-username>>  
-    export GITHUB_TOKEN=<<github-token>>
-``
-
+```
+export GITHUB_USERNAME=<<github-username>>  
+export GITHUB_TOKEN=<<github-token>>
+```
 As above, use those provided via email or those of the `bluelabseu-bot`. These credentials will be stored in a secret and used by the pipeline to clone the `playerbio` repository.
 
+**Minikube**, for running the Kubernetes cluster.
+
+How to access Grafana
 
 In case something goes wrong...
 
 
-## Tooling
-- **Minikube**, for running the Kubernetes cluster
+### Tooling
+Here is a list of the tools that will be installed on the Kubernetes cluster to build, deploy and monitor the service.
 - **Tekton**, for building and deploying services. Though it is not meant to be a fully-fledged continuous delivery tool, I thought it was a good fit for this task, since it is open-source, it runs natively in Kubernetes, and fosters best practices for creating cloud-native pipelines. The Tekton dashboard is exposed on port `30300`.
-- **Prometheus**, for metric scraping. Exposed on port `30200`. There are two preconfigured dashboards: one for generic cluster metrics, and one specific to the PlayerBio service, obtained by collecting the metrics it exposes. TODO!!!
-- **Promtail + Loki**, for log scraping and aggregation
-- **Grafana**, for visualization. Metrics collected by Prometheus and logs aggregated by Loki can be viewed here. Exposed on port `30100`. Username: `admin`, Password: `admin` TODO!!!
-- **Docker registry**, for hosting Docker images
-- **ChartMuseum**, for hosting Helm Charts
-- **Skaffold**, for continuous development
+- **Prometheus**, for metric scraping. Exposed on port `30200`. There are two preconfigured dashboards: one for generic cluster metrics, and one specific to the PlayerBio service, obtained by collecting the metrics it exposes.
+- **Promtail + Loki**, for log scraping and aggregation.
+- **Grafana**, for visualization. Metrics collected by Prometheus and logs aggregated by Loki can be viewed here. Exposed on port `30100`.
+- **Docker registry**, for hosting Docker images.
+- **ChartMuseum**, for hosting Helm Charts.
+- **Skaffold**, for continuous development. Further details below.
 
 ## The pipeline
-The pipeline for the Elixir service is defined is defined with a fully declarative style in a yaml file: `infra/templates/build/pipeline-elixir-service.yaml`
-It's a composition of tasks that basically do the following:
-- Clones the repository
-- Increases chart and app patch versions automatically (more on this later)
-- Pushes the Chart to Chartmuseum
-- Builds the service with Kaniko (a cloud-native, lightweight and more secure Docker engine to build images within a cluster) and pushes the produced image to the Docker registry
-- Deploys the service in the `development` namespace. The service will be exposed on port `31100`
+The pipeline for the Elixir service is defined with a declarative style in a yaml file: `infra/templates/build/pipeline-elixir-service.yaml`
+
+It's a composition of tasks that basically does the following:
+- Clones the repository.
+- Increases chart and app patch versions automatically (more on this later).
+- Pushes the Chart to Chartmuseum.
+- Builds the service with Kaniko (a cloud-native, lightweight and more secure Docker engine to build images within a cluster) and pushes the produced image to the Docker registry.
+- Deploys the service in the `development` namespace. The service will be exposed on port `31100`.
 
 You can manually trigger the pipeline with the following command:
 `tkn pipeline start elixir-service --namespace=infra --serviceaccount=github-bot --param service-name=playerbio --workspace name=source,claimName=sources --use-param-defaults --showlog`
+
 Once run, logs will start steaming. Alternatively, you can watch the pipeline running from the Tekton dashboard at `localhost:30300`.
 
 The pipeline definition is applied to the `playerbio` service, but it is designed to be generic, and can be seamlessly reused to build any Elixir service.
