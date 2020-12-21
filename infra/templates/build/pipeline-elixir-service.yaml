@@ -1,0 +1,94 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: elixir-service
+spec:
+  description: >-
+    Builds an Elixir service and deploys it to a development environment
+  params:
+    - name: service-name
+      description: The name of the service
+    - name: github-repo-revision
+      description: The GitHub revision to use
+      default: main
+    - name: namespace
+      default: development
+    - name: docker-registry-url
+      default: infra-docker-registry.infra.svc:5000
+      description: The URL of the Docker registry
+    - name: chartmuseum-url
+      default: http://infra-chartmuseum.infra.svc:8080
+    - name: github-org-url
+      default: https://github.com/bluelabs-coding-task
+  workspaces:
+    - name: source
+  tasks:
+    - name: clone-sources
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.github-org-url)/$(params.service-name)
+        - name: revision
+          value: $(params.github-repo-revision)
+        - name: deleteExisting
+          value: 'true'
+      workspaces:
+        - name: output
+          workspace: source
+    - name: increase-versions-in-helm-chart
+      taskRef:
+        name: sem-ver
+      params:
+        - name: chart-name
+          value: $(params.service-name)
+        - name: chartmuseum-url
+          value: $(params.chartmuseum-url)
+        - name: context
+          value: helm/$(params.service-name)/
+      workspaces:
+        - name: source
+          workspace: source
+      runAfter:
+        - clone-sources
+    - name: push-chart-to-chartmuseum
+      taskRef:
+        name: helm-push
+      params:
+        - name: chartmuseum-url
+          value: $(params.chartmuseum-url)
+        - name: image
+          # This is because the Docker registry is exposed only via NodePort. It should be $(params.docker-registry-url).
+          value: localhost:30400/$(params.service-name)
+        - name: context
+          value: helm/$(params.service-name)/
+      workspaces:
+        - name: source
+          workspace: source
+      runAfter:
+        - increase-versions-in-helm-chart
+    - name: build-image
+      taskRef:
+        name: kaniko
+      params:
+        - name: IMAGE
+          value: $(params.docker-registry-url)/$(params.service-name):$(tasks.increase-versions-in-helm-chart.results.new-app-version)
+        - name: EXTRA_ARGS
+          value: --insecure
+      runAfter:
+        - increase-versions-in-helm-chart
+      workspaces:
+        - name: source
+          workspace: source
+    - name: deploy
+      taskRef:
+        name: helm-upgrade-from-repo
+      params:
+        - name: chart_name
+          value: $(params.service-name)
+        - name: helm_repo
+          value: $(params.chartmuseum-url)
+        - name: namespace
+          value: $(params.namespace)
+      runAfter:
+        - build-image

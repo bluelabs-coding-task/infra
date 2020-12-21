@@ -1,0 +1,104 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: sem-ver
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/tags: git
+    tekton.dev/displayName: "sem ver"
+spec:
+  description: >-
+    Reads a semantic version from a Helm chart and increment the patch version.
+  workspaces:
+    - name: source
+      description: The Helm chart will be accessed from the volume backing this workspace
+  params:
+    - name: chart-name
+      description: The name of the Helm chart
+    - name: chartmuseum-url
+      description: The URL of the ChartMuseum registry hosting Helm charts
+    - name: context
+      description: The path of the Helm chart
+      default: ./
+  results:
+    - name: new-version
+      description: The new chart version with the patch version incremented
+    - name: new-app-version
+      description: The new app version with the patch version incremented
+  steps:
+    - name: fetch-chart-manifest
+      image: docker.io/lachlanevenson/k8s-helm:v3.3.4
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+
+        helm show chart $(params.chart-name) --repo $(params.chartmuseum-url) > $(params.context)latestChart.yaml || cp $(params.context)Chart.yaml $(params.context)latestChart.yaml
+    - name: increment-chart-version
+      image: mikefarah/yq:3
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+
+        RE='\([0-9.]*\)[.]\([0-9]*\)'
+
+        LATEST_VERSION=`yq r $(params.context)latestChart.yaml version`
+        LATEST_MAJOR_MINOR=`echo $LATEST_VERSION | sed -e "s#$RE#\1#"`
+        LATEST_PATCH=`echo $LATEST_VERSION | sed -e "s#$RE#\2#"`
+
+        VERSION=`yq r $(params.context)Chart.yaml version`
+        MAJOR_MINOR=`echo $VERSION | sed -e "s#$RE#\1#"`
+
+        if [ "$(echo $MAJOR_MINOR '>' $LATEST_MAJOR_MINOR | bc -l)" -eq 1 ]
+        then
+          NEW_LATEST_VERSION=`echo "$MAJOR_MINOR.0"`
+        else
+          LATEST_PATCH=$(( LATEST_PATCH + 1 ))
+          NEW_LATEST_VERSION=`echo "$MAJOR_MINOR.$LATEST_PATCH"`
+        fi
+
+        yq w --inplace $(params.context)Chart.yaml 'version' $NEW_LATEST_VERSION
+
+        echo Chart version read from repo: $VERSION
+        echo Latest chart version read from ChartMuseum: $LATEST_VERSION
+        echo New chart version: $NEW_LATEST_VERSION
+
+        echo -n $NEW_LATEST_VERSION | tee $(results.new-version.path)
+    - name: increment-app-version
+      image: mikefarah/yq:3
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+
+        RE='\([0-9.]*\)[.]\([0-9]*\)'
+
+        LATEST_VERSION=`yq r $(params.context)latestChart.yaml appVersion`
+        LATEST_MAJOR_MINOR=`echo $LATEST_VERSION | sed -e "s#$RE#\1#"`
+        LATEST_PATCH=`echo $LATEST_VERSION | sed -e "s#$RE#\2#"`
+
+        VERSION=`yq r $(params.context)Chart.yaml appVersion`
+        MAJOR_MINOR=`echo $VERSION | sed -e "s#$RE#\1#"`
+
+        if [ "$(echo $MAJOR_MINOR '>' $LATEST_MAJOR_MINOR | bc -l)" -eq 1 ]
+        then
+          NEW_LATEST_VERSION=`echo "$MAJOR_MINOR.0"`
+        else
+          LATEST_PATCH=$(( LATEST_PATCH + 1 ))
+          NEW_LATEST_VERSION=`echo "$MAJOR_MINOR.$LATEST_PATCH"`
+        fi
+
+        yq w --inplace $(params.context)Chart.yaml 'appVersion' $NEW_LATEST_VERSION
+
+        echo Chart version read from repo: $VERSION
+        echo Latest chart version read from ChartMuseum: $LATEST_VERSION
+        echo New chart version: $NEW_LATEST_VERSION
+
+        echo -n $NEW_LATEST_VERSION | tee $(results.new-app-version.path)
+    - name: finalize
+      image: mikefarah/yq:3
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+
+        rm -f $(params.context)latestChart.yaml

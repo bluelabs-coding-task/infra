@@ -1,0 +1,47 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: helm-push
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/tags: git
+    tekton.dev/displayName: "helm-push"
+spec:
+  description: >-
+    Package and upload a Helm chart to ChartMuseum
+  workspaces:
+    - name: source
+      description: The Helm chart will be accessed from the volume backing this workspace
+  params:
+    - name: chartmuseum-url
+      description: The URL of the ChartMuseum registry hosting Helm charts
+    - name: image
+      description: The image to be set in the Helm Chart
+    - name: context
+      description: The path of the Helm chart
+      default: ./
+  steps:
+    - name: set-image-in-chart
+      image: mikefarah/yq:3
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        echo Setting image in Helm Chart to $(params.image)
+        yq w --inplace $(params.context)values.yaml 'image.repository' $(params.image)
+    - name: package
+      image: docker.io/lachlanevenson/k8s-helm:v3.3.4
+      workingDir: $(workspaces.source.path)
+      command:
+        - helm
+        - package
+      args:
+        - $(params.context)
+    - name: upload
+      image: docker.io/curlimages/curl:7.74.0
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+
+        find *.tgz -exec curl --data-binary "@{}" $(params.chartmuseum-url)/api/charts \;

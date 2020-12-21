@@ -1,0 +1,21 @@
+dependencies:
+- name: loki
+  repository: https://grafana.github.io/helm-charts
+  version: 2.2.0
+- name: promtail
+  repository: https://grafana.github.io/helm-charts
+  version: 2.1.0
+- name: grafana
+  repository: https://grafana.github.io/helm-charts
+  version: ~6.1.4
+- name: prometheus
+  repository: https://prometheus-community.github.io/helm-charts
+  version: 11.16.7
+- name: chartmuseum
+  repository: https://charts.helm.sh/stable
+  version: ^2.14.2
+- name: docker-registry
+  repository: https://charts.helm.sh/stable
+  version: ^1.9.6
+digest: sha256:4180f6c0a8a80901247460edaabd5c49aee8c9a0ac23bee56a749f831d852645
+generated: "2020-12-17T01:01:05.6220723+01:00"

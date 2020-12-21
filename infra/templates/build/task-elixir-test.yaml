@@ -1,0 +1,28 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: elixir-test
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/tags: git
+    tekton.dev/displayName: "elixir test"
+spec:
+  description: >-
+    Run tests for an Elixir service
+  workspaces:
+    - name: source
+      description: The Elixir service code will be accessed from the volume backing this workspace
+  params:
+    - name: context
+      description: The path of the Elix service
+      default: ./
+  steps:
+    - name: run-tests
+      image: bitwalker/alpine-elixir:1.11.0
+      workingDir: $(workspaces.source.path)/$(params.context)
+      script: |
+        #!/bin/sh
+        mix deps.get
+        mix test
