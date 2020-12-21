@@ -56,6 +56,7 @@ It's a composition of tasks that basically does the following:
 - Deploys the service in the `development` namespace. The service will be exposed on port `31100`.
 
 You can manually trigger the pipeline with the following command:
+
 `tkn pipeline start elixir-service --namespace=infra --serviceaccount=github-bot --param service-name=playerbio --workspace name=source,claimName=sources --use-param-defaults --showlog`
 
 Once run, logs will start steaming. Alternatively, you can watch the pipeline running from the Tekton dashboard at `localhost:30300`.
@@ -65,21 +66,21 @@ Tasks are also generic: they can be cobbled together to form other pipelines wit
 
 ### Automated versioning
 The pipeline itself is not enough to implement a GitOps-oriented deployment process. However, it prepares the work by automatically increasing the versions of the Helm chart and of the application, and updating the Helm chart accordingly.
-The `task-helm-upgrade-from-repo` task takes the Helm chart contained in the cloned `playerbio` repo as a reference, and does the following:
+The `sem-ver` task takes the Helm chart contained in the cloned `playerbio` repo as a reference, and does the following:
 - Reads version from `Chart.yaml` and compares it with the latest chart pushed to ChartMuseum. If the major and minor versions match, it increases the patch version of the chart obtained from ChartMuseum, and updates the local chart accordingly. If the local major or minor versions are greater than those read from ChartMuseum, it resets the patch version to 0.
 - Does the same with `appVersion`.
 - Pushes the updated Chart to ChartMuseum.
 - Returns the new `appVersion` as a result, so that it can be used by downstream tasks to tag the built image.
 
 ## Skaffold
-The `skaffold.yaml` file in the root of the `playerbio` repo is preconfigured to build the service locally and deploy on the development namespace with release name `playerbio-local`. This will greatly simplify developing new features and quickly testing the outcome by sending the service straight to a real cluster.
+The `skaffold.yaml` file in the root of the `playerbio` repo is preconfigured to build the service locally and deploy on the development namespace with release name `playerbio-local`. This will greatly simplify developing new features and quickly testing the outcome by sending the service code straight to a real cluster.
 
-Just run `skaffold dev` and Skaffold will:
-- Build the service
-- Build the Docker image and push it to the in-cluster Docker registry
-- Deploy the service
-- Watch local files and re-trigger the build whenever there is a change
-- Cleanup the deployed release when exiting
+Just run `skaffold dev` and it will:
+- Build the service.
+- Build the Docker image and push it to the cluster Docker registry.
+- Deploy the service.
+- Watch local files and re-trigger the build whenever there is a change.
+- Cleanup the deployed release when exiting.
 
 ## Choices
 - Though it is best practice, I haven't defined resource requests and limits on purpose, to avoid scheduling problems depending on the cluster where the coding task will be tested.
