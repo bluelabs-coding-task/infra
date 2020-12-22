@@ -38,8 +38,14 @@ curl -LO https://github.com/tektoncd/cli/releases/download/v0.15.0/tkn_0.15.0_Li
 tar xvzf tkn_0.15.0_Linux_x86_64.tar.gz -C /usr/local/bin tkn
 rm -f tkn_0.15.0_Linux_x86_64.tar.gz
 
+#Skaffold
+curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64
+install skaffold /usr/local/bin/
+rm -f skaffold
+
 ## Infra release
 kubectl create ns infra
+kubectl create ns development
 kubectl config set-context --current --namespace=infra
 cd infra/infra || exit
 helm dependency update

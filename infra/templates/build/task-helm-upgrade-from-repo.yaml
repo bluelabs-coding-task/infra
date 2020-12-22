@@ -32,4 +32,4 @@ spec:
         helm repo add helm_repo "$(inputs.params.helm_repo)"
         helm repo update
 
-        helm upgrade --install --create-namespace --namespace "$(inputs.params.namespace)" $(inputs.params.chart_name) helm_repo/$(inputs.params.chart_name) --debug --set "$(inputs.params.overwrite_values)"
+        helm upgrade --install --namespace "$(inputs.params.namespace)" $(inputs.params.chart_name) helm_repo/$(inputs.params.chart_name) --debug --set "$(inputs.params.overwrite_values)"
