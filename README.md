@@ -84,6 +84,7 @@ Just run `skaffold dev` and it will:
 
 ## Choices
 - Though it is best practice, I haven't defined resource requests and limits on purpose, to avoid scheduling problems depending on the cluster where the coding task will be tested.
+- I didn't explicitly set storage classes. Minikube provides its storage class and marks it as the default one, so that's the one that will be used.
 - Ingresses are straightforward to configure in the cloud, but when testing locally, they typically require extra steps, such as configuring custom DNS rules on the host machine. To keep things simple, I have exposed all the relevant services with fixed NodePorts. This is definitely not suitable in a production context, but it will be enough for testing things locally.
 - The Docker registry hosting built images runs within the cluster and is not exposed externally via ingress. Since the Docker engine needs to access a registry in order to pull images, when deploying the PlayerBio service, I'm setting the image to localhost:30400/playerbio. Again, not production ready but enough for testing locally.
 - The Tekton triggers cannot work if the host machine is not exposed to the Internet and the cluster ports are not properly forwarded. This is why the pipeline is triggered manually. On a real scenario, at each PR issued or branch merged on main, the related pipeline would be triggered automatically.
