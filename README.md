@@ -35,8 +35,8 @@ Here is the setup I have been using to work on the coding task:
    ```
    It will basically install Minikube, Helm and Docker, and deploy what's needed on the cluster.
 
-TODO In case something goes wrong...
-
+#### Emergency fallback
+The script should complete correctly on a VM like the one detailed above, but in case something goes wrong, you can access a preconfigured VM and go ahead with that one.
 
 ### Tooling
 Here is a list of the tools that will be installed on the Kubernetes cluster to build, deploy and monitor the service.
@@ -48,12 +48,12 @@ Here is a list of the tools that will be installed on the Kubernetes cluster to 
 - **Grafana**, for visualization. Metrics collected by Prometheus and logs aggregated by Loki can be viewed here.  
     There are two preconfigured dashboards: one for generic cluster metrics, and one specific to the PlayerBio service, obtained by collecting the metrics it exposes.  
     Exposed on port `30100`.  
-        The username is `admin`.  
+    The username is `admin`.  
     To get the password use:
     ```
     kubectl get secret infra-grafana -n infra -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
     ```
-- **Docker registry**, for hosting Docker images.
+- **Docker registry**, for hosting Docker images (for the sake of completeness, since we are building locally, thus it would actually not be required).
 - **ChartMuseum**, for hosting Helm Charts.
 - **Skaffold**, for continuous development. Further details below.
 
@@ -79,7 +79,7 @@ Tasks are also generic: they can be cobbled together to form other pipelines wit
 ### Automated versioning
 The pipeline itself is not enough to implement a GitOps-oriented deployment process. However, it prepares the work by automatically increasing the versions of the Helm chart and of the application, and updating the Helm chart accordingly.
 The `sem-ver` task takes the Helm chart contained in the cloned `playerbio` repo as a reference, and does the following:
-- Reads version from `Chart.yaml` and compares it with the latest chart pushed to ChartMuseum. If the major and minor versions match, it increases the patch version of the chart obtained from ChartMuseum, and updates the local chart accordingly. If the local major or minor versions are greater than those read from ChartMuseum, it resets the patch version to 0.
+- Reads version from `Chart.yaml` and compares it with the latest chart pushed to ChartMuseum. If the major and minor versions match, it increases the patch version of the chart obtained from ChartMuseum, and updates the local chart accordingly. If the local major or minor versions are greater than those read from ChartMuseum, it resets the patch version to 1.
 - Does the same with `appVersion`.
 - Pushes the updated Chart to ChartMuseum.
 - Returns the new `appVersion` as a result, so that it can be used by downstream tasks to tag the built image.
@@ -87,10 +87,10 @@ The `sem-ver` task takes the Helm chart contained in the cloned `playerbio` repo
 ## Skaffold
 The `skaffold.yaml` file in the root of the `playerbio` repo is preconfigured to build the service locally and deploy on the development namespace with release name `playerbio-local`. This will greatly simplify developing new features and quickly testing the outcome by sending the service code straight to a real cluster.
 
-Just run `skaffold dev` and it will:
+Just clone the `playerbio` repository (https://github.com/bluelabs-coding-task/playerbio.git) and run `skaffold dev` from the root of the repo, and it will:
 - Build the service.
 - Build the Docker image and push it to the cluster Docker registry.
-- Deploy the service.
+- Deploy the service. At the end of the deployment, the command to get the related NodePort will be printed.
 - Watch local files and re-trigger the build whenever there is a change.
 - Cleanup the deployed release when exiting.
 

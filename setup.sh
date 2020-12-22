@@ -6,16 +6,6 @@ systemctl start docker
 systemctl enable docker
 usermod -aG docker $USER && newgrp docker
 
-#Minikube
-mkdir minikube
-cd minikube || exit
-curl -LO https://github.com/kubernetes/minikube/releases/download/v1.15.1/minikube-linux-amd64
-install minikube-linux-amd64 /usr/local/bin/minikube
-cd ..
-rm -rf minikube
-minikube start --driver=docker --cpus 2 --memory 2048 --disk-size=60g
-ln -s $(which minikube) /usr/local/bin/kubectl
-
 #Helm
 mkdir helm
 cd helm || exit
@@ -24,6 +14,16 @@ tar -zxvf helm-v3.4.2-linux-amd64.tar.gz
 mv linux-amd64/helm /usr/local/bin/helm
 cd ..
 rm -rf helm
+
+#Minikube
+mkdir minikube
+cd minikube || exit
+curl -LO https://github.com/kubernetes/minikube/releases/download/v1.15.1/minikube-linux-amd64
+install minikube-linux-amd64 /usr/local/bin/minikube
+cd ..
+rm -rf minikube
+minikube start --driver=none
+ln -s $(which minikube) /usr/local/bin/kubectl
 
 #Tekton
 kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.19.0/release.yaml

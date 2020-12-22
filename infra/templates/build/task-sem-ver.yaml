@@ -52,7 +52,7 @@ spec:
 
         if [ "$(echo $MAJOR_MINOR '>' $LATEST_MAJOR_MINOR | bc -l)" -eq 1 ]
         then
-          NEW_LATEST_VERSION=`echo "$MAJOR_MINOR.0"`
+          NEW_LATEST_VERSION=`echo "$MAJOR_MINOR.1"`
         else
           LATEST_PATCH=$(( LATEST_PATCH + 1 ))
           NEW_LATEST_VERSION=`echo "$MAJOR_MINOR.$LATEST_PATCH"`
@@ -82,7 +82,7 @@ spec:
 
         if [ "$(echo $MAJOR_MINOR '>' $LATEST_MAJOR_MINOR | bc -l)" -eq 1 ]
         then
-          NEW_LATEST_VERSION=`echo "$MAJOR_MINOR.0"`
+          NEW_LATEST_VERSION=`echo "$MAJOR_MINOR.1"`
         else
           LATEST_PATCH=$(( LATEST_PATCH + 1 ))
           NEW_LATEST_VERSION=`echo "$MAJOR_MINOR.$LATEST_PATCH"`
