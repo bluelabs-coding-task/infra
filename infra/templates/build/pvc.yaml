@@ -4,7 +4,8 @@ metadata:
   name: sources
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
+  storageClassName: {{ .Values.sourcesPVC.storageClass }}
   resources:
     requests:
-      storage: 3Gi
+      storage: 2Gi
