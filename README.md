@@ -4,60 +4,72 @@ The code is hosted in the GitHub organization `bluelabs-coding-task` (https://gi
 - **development**, for the playerbio service
 
 ## Prerequisites
-I've been successfully running the coding task with the following configuration:
- - e2-medium Google Cloud VM
- - CentOS 8
+Here is the setup I have been using to work on the coding task:
+ - e2-medium VM on Google Cloud
  - 100 GB disk storage
-
-As a preliminary step, clone the `infra` repository (https://github.com/bluelabs-coding-task/infra.git) on your machine. For example, on the Google Cloud VM:
-```
-sudo dnf update -y
-sudo dnf install git -y
-git clone https://github.com/bluelabs-coding-task/infra.git
-```
-When prompted insert the GitHub username and password/token (those provided via email or those of the `bluelabseu-bot`).
-
-TODO CHMOD
-
+ - CentOS 8
+ 
+ Since there are dashboards to be accessed externally, I have created a firewall rule to enable ingress traffic to all ports for the VM I have used.
+ 
+ You are not obliged to do the same, but in case you opt for a different setup, you may need to tweak the script below to adapt it to your scenario.
 
 ## Setup
-Export the following variables to set GitHub username and token:  
-```
-export GITHUB_USERNAME=<<github-username>>  
-export GITHUB_TOKEN=<<github-token>>
-```
-As above, use those provided via email or those of the `bluelabseu-bot`. These credentials will be stored in a secret and used by the pipeline to clone the `playerbio` repository.
+1. Log into the VM as **root**.
+2. Clone the `infra` repository (https://github.com/bluelabs-coding-task/infra.git). For example, on the Google Cloud VM:
+    ```
+    sudo dnf update -y
+    sudo dnf install git -y
+    git clone https://github.com/bluelabs-coding-task/infra.git
+    ```
+    When prompted insert the GitHub username and password/token (those provided via email or those of the `bluelabseu-bot`).
+3. Export the following variables to set GitHub username and token:  
+    ```
+    export GITHUB_USERNAME=<<github-username>>  
+    export GITHUB_TOKEN=<<github-token>>
+    ```
+    As in point 1, use those provided via email or those of the `bluelabseu-bot`. These credentials will be stored in a secret and used by the pipeline to clone the `playerbio` repository.
+4. Run the setup script:
+   ```
+   TODO chmod
+   ./setup.sh
+   ```
+   It will basically install Minikube, Helm and Docker, and deploy what's needed on the cluster.
 
-**Minikube**, for running the Kubernetes cluster.
-
-How to access Grafana
-
-In case something goes wrong...
+TODO In case something goes wrong...
 
 
 ### Tooling
 Here is a list of the tools that will be installed on the Kubernetes cluster to build, deploy and monitor the service.
-- **Tekton**, for building and deploying services. Though it is not meant to be a fully-fledged continuous delivery tool, I thought it was a good fit for this task, since it is open-source, it runs natively in Kubernetes, and fosters best practices for creating cloud-native pipelines. The Tekton dashboard is exposed on port `30300`.
-- **Prometheus**, for metric scraping. Exposed on port `30200`. There are two preconfigured dashboards: one for generic cluster metrics, and one specific to the PlayerBio service, obtained by collecting the metrics it exposes.
+- **Minikube**, for running the Kubernetes cluster.
+- **Tekton**, for building and deploying services. Though it is not meant to be a fully-fledged continuous delivery tool, I thought it was a good fit for this task, since it is open-source, it runs natively in Kubernetes, and fosters best practices for creating cloud-native pipelines.  
+    The Tekton dashboard is exposed on port `30300`.
+- **Prometheus**, for metric scraping. Exposed on port `30200`.
 - **Promtail + Loki**, for log scraping and aggregation.
-- **Grafana**, for visualization. Metrics collected by Prometheus and logs aggregated by Loki can be viewed here. Exposed on port `30100`.
+- **Grafana**, for visualization. Metrics collected by Prometheus and logs aggregated by Loki can be viewed here.  
+    There are two preconfigured dashboards: one for generic cluster metrics, and one specific to the PlayerBio service, obtained by collecting the metrics it exposes.  
+    Exposed on port `30100`.  
+        The username is `admin`.  
+    To get the password use:
+    ```
+    kubectl get secret infra-grafana -n infra -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+    ```
 - **Docker registry**, for hosting Docker images.
 - **ChartMuseum**, for hosting Helm Charts.
 - **Skaffold**, for continuous development. Further details below.
 
 ## The pipeline
-The pipeline for the Elixir service is defined with a declarative style in a yaml file: `infra/templates/build/pipeline-elixir-service.yaml`
+The pipeline for the Elixir service is defined in declarative style in a yaml file: `infra/templates/build/pipeline-elixir-service.yaml`
 
-It's a composition of tasks that basically does the following:
-- Clones the repository.
-- Increases chart and app patch versions automatically (more on this later).
-- Pushes the Chart to Chartmuseum.
-- Builds the service with Kaniko (a cloud-native, lightweight and more secure Docker engine to build images within a cluster) and pushes the produced image to the Docker registry.
-- Deploys the service in the `development` namespace. The service will be exposed on port `31100`.
+It's a composition of tasks that basically do the following:
+- Clone the repository.
+- Increase chart and app patch versions automatically (more on this later).
+- Push the Chart to Chartmuseum.
+- Build the service with Kaniko (a cloud-native, lightweight and more secure Docker engine to build images within a cluster) and pushes the produced image to the Docker registry.
+- Deploy the service in the `development` namespace. The service will be exposed on port `31100`.
 
 You can manually trigger the pipeline with the following command:
 
-`tkn pipeline start elixir-service --namespace=infra --serviceaccount=github-bot --param service-name=playerbio --workspace name=source,claimName=sources --use-param-defaults --showlog`
+`tkn pipeline start elixir-service --namespace=infra --serviceaccount=builder --param service-name=playerbio --workspace name=source,claimName=sources --use-param-defaults --showlog`
 
 Once run, logs will start steaming. Alternatively, you can watch the pipeline running from the Tekton dashboard at `localhost:30300`.
 
