@@ -30,9 +30,8 @@ Here is the setup I have been using to work on the coding task:
     As in point 1, use those provided via email or those of the `bluelabseu-bot`. These credentials will be stored in a secret and used by the pipeline to clone the `playerbio` repository.
 1. Run the setup script:
    ```
-   cd infra
-   chmod +x setup.sh
-   ./setup.sh
+   chmod +x infra/setup.sh
+   infra/setup.sh
    ```
    It will basically install Minikube, Helm and Docker, and deploy what's needed on the cluster.
 

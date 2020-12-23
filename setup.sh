@@ -7,7 +7,6 @@ yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce
 yum install -y docker-ce-3:20.10.0-3.el8 docker-ce-cli-1:20.10.0-3.el8 containerd.io-1.4.3-3.1.el8 conntrack
 systemctl start docker
 systemctl enable docker
-#usermod -aG docker $USER && newgrp docker && echo ok
 
 #Helm
 echo --- Installing Helm ---
@@ -58,7 +57,7 @@ echo --- Installing Infra release ---
 kubectl create ns infra
 kubectl create ns development
 kubectl config set-context --current --namespace=infra
-cd infra/infra || exit
+cd infra/infra
 helm dependency update
 helm upgrade --install infra --wait --set github.username=$GITHUB_USERNAME --set github.token=$GITHUB_TOKEN .
 
