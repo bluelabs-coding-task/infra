@@ -43,6 +43,7 @@ Here is a list of the tools that will be installed on the Kubernetes cluster to 
 - **Promtail + Loki**, for log scraping and aggregation.
 - **Grafana**, for visualization. Metrics collected by Prometheus and logs aggregated by Loki can be viewed here.  
     There are two preconfigured dashboards: one for generic cluster metrics (_Cluster Monitoring for Kubernetes_), and one specific to the PlayerBio service (_Erlang Service_), obtained by collecting the metrics it exposes.  
+    As for logs, a Loki query like this `{namespace="development",app_kubernetes_io_name="playerbio"}` will show all the logs for the `playerbio` service.  
     Grafana is exposed on port `30100`.  
     The username is `admin`.  
     To get the password use:
