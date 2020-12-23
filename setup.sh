@@ -21,6 +21,8 @@ rm -rf helm
 
 #Minikube
 echo --- Installing Minikube ---
+setenforce 0
+sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
 mkdir minikube
 cd minikube
 curl -LO https://github.com/kubernetes/minikube/releases/download/v1.15.1/minikube-linux-amd64
