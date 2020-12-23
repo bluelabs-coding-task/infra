@@ -90,9 +90,9 @@ spec:
 
         yq w --inplace $(params.context)Chart.yaml 'appVersion' $NEW_LATEST_VERSION
 
-        echo Chart version read from repo: $VERSION
-        echo Latest chart version read from ChartMuseum: $LATEST_VERSION
-        echo New chart version: $NEW_LATEST_VERSION
+        echo App version read from repo: $VERSION
+        echo Latest app version read from ChartMuseum: $LATEST_VERSION
+        echo New app version: $NEW_LATEST_VERSION
 
         echo -n $NEW_LATEST_VERSION | tee $(results.new-app-version.path)
     - name: finalize
